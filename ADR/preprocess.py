@@ -1,5 +1,7 @@
 
 #%%
+import sys
+sys.path.append("..")
 
 import itertools
 import pandas as pd
@@ -8,8 +10,8 @@ import re
 from scipy.special import expit
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import matthews_corrcoef
-
-import loglizer.preprocessing
+# from loglizer import preprocessing
+# import loglizer.preprocessing
 import numpy as np
 import os
 
@@ -22,11 +24,10 @@ def split_to_N_AN(x, y):
 
 def split_to_train_test_by_ratio(x, y, train_ratio=0.5):
     x, y = np.array(x), np.array(y)
-    num_rows, num_clos = x.shape
-    num_train = int(num_rows*train_ratio)
+    num_rows, num_cols = x.shape
+    num_train = np.int(num_rows*train_ratio)
     shuffled_indices = np.arange(num_rows)
     np.random.shuffle(shuffled_indices)
-
     idx_train = shuffled_indices[0:num_train]
     idx_test = shuffled_indices[num_train:]
 
@@ -164,13 +165,13 @@ def split_to_windows_by_time(para, raw_data, event_mapping_data, dict_label, col
             if list(dict_label.keys()) == ["Normal"]:
                 if label_data[k] == None:
                     print("label is none")
-                if label_data[k] not in dict_label["Normal"]:
-                    # print(f"lable = 1")
+                if label_data[k] not in dict_label["Nojurmal"]:
+                    # print(f"label = 1")
                     label = 1
                     continue
             elif list(dict_label.keys()) == "Anomaly":
                 if label_data[k] in dict_label["Anomaly"]:
-                    # print(f"lable = 1")
+                    # print(f"label = 1")
                     label = 1
                     continue
 
@@ -239,12 +240,14 @@ def stats_x_y(x, y, hdegree=1, add_parity=False, add_Exist=False):
     x = extend_2darray(x, highest_degree=hdegree, add_parity=add_parity, add_tf=add_Exist)
     x_N, x_AN = split_to_N_AN(x, y)
     if x_N.shape[0] > 100000:
-        x_N = random_samples(x_N, 100000)
+        x_N = random_samples(x_N, 1000)
     if x_AN.shape[0] > 100000:
-        x_AN = random_samples(x_AN, 100000)
+        x_AN = random_samples(x_AN, 1000)
 
     print(f"x_N's shape is {x_N.shape}")
     print(f"x_AN's shape is {x_AN.shape}")
+    print(f'x_N rank is {np.linalg.matrix_rank(x_N)}')
+    print(f'x_AN rank is {np.linalg.matrix_rank(x_AN)}')
 
     # print(f"x's rank is {np.linalg.matrix_rank(x)}")
     # print(f"x's rank is {scipy.linalg.interpolative.estimate_rank(x.astype(float), 0.1)}")
@@ -267,14 +270,14 @@ def stats_x_y(x, y, hdegree=1, add_parity=False, add_Exist=False):
     if x_AN.shape[0] > 0:
         print(unique_count((np.abs(np.dot(x_N, AN_null_space)) > 1e-10).any(axis=1)))
         N_dot_for_nv = ((np.abs(np.dot(x, AN_null_space)) > 1e-10).sum(axis=0))/x_N.shape[0]
-        print('min, max, mean:')
-        print(N_dot_for_nv.min(), N_dot_for_nv.max(), N_dot_for_nv.mean())
+        # print('min, max, mean:')
+        # print(N_dot_for_nv.min(), N_dot_for_nv.max(), N_dot_for_nv.mean())
     print("-----AN dot ns(N)-----")
     if x_N.shape[0] > 0:
         print(unique_count((np.abs(np.dot(x_AN, N_null_space)) > 1e-10).any(axis=1)))
         AN_dot_for_nv = ((np.abs(np.dot(x, N_null_space)) > 1e-10).sum(axis=0))/x_AN.shape[0]
-        print('min, max, mean:')
-        print(AN_dot_for_nv.min(), AN_dot_for_nv.max(), AN_dot_for_nv.mean())
+        # print('min, max, mean:')
+        # print(AN_dot_for_nv.min(), AN_dot_for_nv.max(), AN_dot_for_nv.mean())
 
 
 def unique_count(a):
@@ -359,7 +362,7 @@ def split_by_timewindows(df_logs, col_timestamp, windows_size, step_size):
 
     return expanded_indexes_list
 
-def event_count_by_time_winsow(df_logs, col_timestamp, col_EventId, window_size, step_size, col_Label=None, keep_N_AN="All"):
+def event_count_by_time_window(df_logs, col_timestamp, col_EventId, window_size, step_size, col_Label=None, keep_N_AN="All"):
     if keep_N_AN == "All":
         pass
     elif keep_N_AN == "N":
@@ -421,14 +424,14 @@ def ECM_by_NumEventWindow(df_logs, list_EventIds, col_timestamp, col_EventId, wi
     return df_ECM_by_windows, bLabels
 
 
-def load_hdfs_npz_to_ECM(log_path):
-    if log_path.endswith("npz"):
-        data = np.load(log_path, allow_pickle=True)
-        x = data['x_data']
-        feature_extractor = loglizer.preprocessing.FeatureExtractor()
-        x = feature_extractor.fit_transform(x)
-        y = data['y_data']
-        return x, y
+# def load_hdfs_npz_to_ECM(log_path):
+#     if log_path.endswith("npz"):
+#         data = np.load(log_path, allow_pickle=True)
+#         x = data['x_data']
+#         feature_extractor = preprocessing.FeatureExtractor()
+#         x = feature_extractor.fit_transform(x)
+#         y = data['y_data']
+#         return x, y
 
 def load_hdfs_structured_logs(log_path, labels_path=None):
     df_logs = pd.read_csv(log_path, sep=',', header=0)
@@ -441,8 +444,8 @@ def load_hdfs_structured_logs(log_path, labels_path=None):
 
 def load_bgl_structured_logs(log_path):
     df_logs = pd.read_csv(log_path, sep=',', header=0)
-    df_logs_bLables = df_logs.apply(lambda row: 0 if row['Label']=='-' else 1, axis=1).values
-    return df_logs, df_logs_bLables
+    df_logs_blabels = df_logs.apply(lambda row: 0 if row['Label']=='-' else 1, axis=1).values
+    return df_logs, df_logs_blabels
 
 def transform(X, term_weighting=None, normalization=None, oov=False, min_count=1):
     num_instance, num_event = X.shape
@@ -540,6 +543,16 @@ def p_r_f_mcc(y_pred, y_true):
     # print(precision, recall, f1)
     return precision, recall, f1, mcc
 
+def p_r_f(y_pred, y_true):
+    precision, recall, f1, _ = precision_recall_fscore_support(y_true, y_pred, average='binary')
+    # mcc = matthews_corrcoef(y_true, y_pred)
+    precision = round(precision, 4)
+    recall = round(recall, 4)
+    f1 = round(f1, 4)
+    # print("precision, recall, F1:")
+    # print(precision, recall, f1)
+    return precision, recall, f1
+
 
 def prob_Nsample(num_P, AN_ratio, sample_ratio):
     num_AN = int(num_P*AN_ratio)
@@ -564,19 +577,18 @@ def get_number_of_sample(num_P, AN_ratio, sample_ratio = 0.05):
             return num_sample
         num_sample += 1
 
-def estimate_number_of_samples_per_round(AN_ratio, num_instances):
-    #     num_instances = int(num_P*sample_ratio)
-    num_sample = 1
+def estimate_number_of_samples_per_round(AN_ratio, nrows_per_sample):
+    nsamples_per_round = 1
     while True:
-        # print(num_sample)
-        N_ratio = 1-AN_ratio
-        prob_AllN = np.power(N_ratio, num_instances)
-        prob_AtLeast1AN = 1 - prob_AllN
-        prob_AtLeast1AN_for_num_samples = 1-np.power(prob_AtLeast1AN, num_sample)
-        if prob_AtLeast1AN_for_num_samples > 0.999999999:
-            # print(f"sample {num_sample} times, success rate is {prob_AtLeast1AN_for_num_samples}")
-            return num_sample
-        num_sample += 10
+        # print(nsamples_per_round)
+        p_N = 1-AN_ratio
+        p_type1 = p_N**nrows_per_sample
+        p_none_type1 = 1 - p_type1
+        p_at_least_1_type1_for_nsamples = 1 - p_none_type1**nsamples_per_round
+        if p_at_least_1_type1_for_nsamples > 0.9999:
+            # print(f"sample {nsamples_per_round} times, success rate is {prob_AtLeast1AN_for_nsamples}")
+            return nsamples_per_round
+        nsamples_per_round += 1
 
 
 def random_samples(x_train, no_samples, y_train=None):
@@ -592,6 +604,18 @@ def random_samples(x_train, no_samples, y_train=None):
     else:
         y_rand_samples = y_train[idx_samples]
         return rand_samples, y_rand_samples
+
+def repeat_samples(x, no_samples):
+    n_rows = x.shape[0]
+    rand_int = np.random.randint(n_rows)
+    sample = x[rand_int:rand_int+1, :]
+
+    for i in range(1, no_samples):
+        rand_int = np.random.randint(n_rows)
+        new_sample = x[rand_int:rand_int+1, :]
+        sample = np.concatenate((sample, new_sample), axis=0)
+
+    return sample
 
 def random_split_by_number(x, no_part1, y):
     no_rows = x.shape[0]
@@ -621,5 +645,12 @@ def eval_by_nullspace(x_test, y_test, nullspace, hdegree, add_parity, add_tf):
     x_test = extend_2darray(x_test, hdegree, add_parity=add_parity, add_tf=add_tf)
     dot_prod = np.dot(x_test, nullspace).__abs__()
     y_pred = (dot_prod > 1e-10).sum(axis=1) >= 1
-    print("precesion, recall, F is:")
+    print("precision, recall, F, MCC is:")
     print(p_r_f_mcc(y_pred, y_test))
+
+def eval_sample(train, test, test_y):
+    ns_train = scipy.linalg.null_space(train)
+    dot_prod = np.dot(test, ns_train).__abs__()
+    y_predict = (dot_prod > 1e-10).sum(axis=1) >= 1
+    p, r, f1, mcc = p_r_f_mcc(y_predict, test_y)
+    return (p, r, f1, mcc)

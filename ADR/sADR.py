@@ -1,15 +1,14 @@
 from ADR.preprocess import *
 
-class ADR():
-    def __init__(self, hdegree=1, add_parity=False, add_tf=False):
+class sADR():
+    def __init__(self, hdegree=1, add_parity=False, add_tf=True):
         self.hdegree = hdegree
         self.add_parity = add_parity
         self.add_tf = add_tf
 
-    def fit(self, x_train, y_train=None):
-        if y_train is not None:
-            x_train, _ = split_to_N_AN(x_train, y_train)
-        x_train = random_samples(x_train, min(x_train.shape[1]*10, x_train.shape[0]))
+    def fit(self, x_train, y_train):
+        x_train, _ = split_to_N_AN(x_train, y_train)
+        # x_train = random_samples(x_train, min(x_train.shape[1]*10, x_train.shape[0]))
         extended_x_train = extend_2darray(x_train, self.hdegree, self.add_parity, self.add_tf)
         self.ns_x_train = scipy.linalg.null_space(extended_x_train)
 
@@ -27,12 +26,12 @@ class ADR():
         # print(f'ns shape is {self.ns_x_train.shape}')
         return self.ns_x_train.shape[1]
 
-    def pred(self, x):
+    def predict(self, x):
         extended_x = extend_2darray(x, self.hdegree, self.add_parity, self.add_tf)
-        y_pred = (np.dot(extended_x, self.ns_x_train).__abs__() > 1e-10).sum(axis=1) > 0
+        y_pred = (np.abs(np.dot(extended_x, self.ns_x_train)) > 1e-10).sum(axis=1) > 0
         return y_pred
 
     def evaluate(self, x, y):
-        y_pred = self.pred(x)
-        precision, recall, F, mcc = p_r_f_mcc(y_pred, y)
-        return precision, recall, F, mcc
+        y_pred = self.predict(x)
+        precision, recall, F = p_r_f(y_pred, y)
+        return precision, recall, F

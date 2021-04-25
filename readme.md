@@ -8,7 +8,4 @@ To view and run the ___demo.ipynb___, the followings are required:
 - notebook
 - numpy
 - pandas
-- scipy
 - scikit-learn
-- sympy
-- deap
