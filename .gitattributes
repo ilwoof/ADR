@@ -1,5 +1,0 @@
-/data/Drain_result/bgl_385events/bgl_x_y_xColumns.npz filter=lfs diff=lfs merge=lfs -text
-/data/Drain_result/bgl_385events/ECM_sessions.npz filter=lfs diff=lfs merge=lfs -text
-/data/Drain_result/hdfs_49events/hdfs_x_y_xColumns.npz filter=lfs diff=lfs merge=lfs -text
-/data/Drain_result/bgl_385events/BGL.log_structured500k.csv filter=lfs diff=lfs merge=lfs -text
-/data/Drain_result/bgl_385events/x_y_200k.npz filter=lfs diff=lfs merge=lfs -text
