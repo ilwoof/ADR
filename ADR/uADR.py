@@ -1,7 +1,9 @@
+import sys
+sys.path.append('..')
 from ADR.preprocess import *
 
 class uADR():
-    def __init__(self, AN_ratio=0.05, nrows_per_sample=50, nrounds=1, highest_degree=1, add_parity=False, add_tf=True):
+    def __init__(self, AN_ratio=0.05, nrows_per_sample=10, nrounds=1, highest_degree=1, add_parity=False, add_tf=True):
         self.AN_ratio = AN_ratio
         self.pN = 1 - self.AN_ratio
         self.highest_degree = highest_degree
@@ -15,27 +17,35 @@ class uADR():
         x_validation = random_samples(x_train, min(self.nrows_per_sample * 10, x_train.shape[0]))
         extended_x_validation = extend_2darray(x_validation, highest_degree=1)
 
-        x_sample = random_samples(x_train, self.nrows_per_sample)
-        rank_x_sample = np.linalg.matrix_rank(x_sample)
-
-        candidate = x_sample
-        indicator1 = rank_x_sample
-        for _ in range(1, self.nsamples_per_round):
+        n_sampled = 0
+        while True:
+            # x_sample, x_train = split_by_number(x_train, self.nrows_per_sample)
             x_sample = random_samples(x_train, self.nrows_per_sample)
+            # print(x_sample)
             rank_x_sample = np.linalg.matrix_rank(x_sample)
+            n_sampled += 1
 
-            if rank_x_sample < indicator1:
+            if n_sampled == 1:
                 candidate = x_sample
-            elif rank_x_sample == indicator1:
-                ns_extended_candidate = scipy.linalg.null_space(extend_2darray(candidate, highest_degree=1))
-                indicator2 = np.abs(np.dot(extended_x_validation, ns_extended_candidate)).mean()
-
-                ns_extended_x_sample = scipy.linalg.null_space(extend_2darray(x_sample, highest_degree=1))
-                dot_product_x_sample = np.abs(np.dot(extended_x_validation, ns_extended_x_sample)).mean()
-                if dot_product_x_sample < indicator2:
-                    candidate = x_sample
+                indicator1 = rank_x_sample            
             else:
-                pass
+                if rank_x_sample < indicator1:
+                    candidate = x_sample
+                    indicator1 = rank_x_sample
+                elif rank_x_sample == indicator1:
+                    ns_extended_candidate = scipy.linalg.null_space(extend_2darray(candidate, highest_degree=1))
+                    indicator2 = np.abs(np.dot(extended_x_validation, ns_extended_candidate)).mean()
+
+                    ns_extended_x_sample = scipy.linalg.null_space(extend_2darray(x_sample, highest_degree=1))
+                    dot_product_x_sample = np.abs(np.dot(extended_x_validation, ns_extended_x_sample)).mean()
+                    if dot_product_x_sample < indicator2:
+                        candidate = x_sample
+                        indicator2 = dot_product_x_sample
+                else:
+                    pass
+
+            if n_sampled > self.nsamples_per_round:
+                break
 
         return candidate
 
@@ -77,5 +87,4 @@ class uADR():
 
     def evaluate(self, x_test, y_test):
         y_pred = self.predict(x_test)
-        precision, recall, f1 = p_r_f(y_pred, y_test)
-        return precision, recall, f1
+        return p_r_f(y_pred, y_test)

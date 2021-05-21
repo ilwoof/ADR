@@ -591,19 +591,14 @@ def estimate_number_of_samples_per_round(AN_ratio, nrows_per_sample):
         nsamples_per_round += 1
 
 
-def random_samples(x_train, no_samples, y_train=None):
-    no_rows = x_train.shape[0]
-    shuffled_indices = np.arange(no_rows)
-    np.random.shuffle(shuffled_indices)
-    idx_samples = shuffled_indices[0:no_samples]
+def random_samples(x_train, num_samples, y_train=None):
+    random_indices = np.random.choice(np.arange(x_train.shape[0], num_samples))
 
-    rand_samples = x_train[idx_samples, :]
 
     if y_train is None:
-        return rand_samples
+        return x_train[random_indices]
     else:
-        y_rand_samples = y_train[idx_samples]
-        return rand_samples, y_rand_samples
+        return x_train[random_indices], y_train[random_indices]
 
 def repeat_samples(x, no_samples):
     n_rows = x.shape[0]
